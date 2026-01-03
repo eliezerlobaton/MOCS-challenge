@@ -29,29 +29,6 @@ export const documentsController = {
     }
   },
 
-  async getById(request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) {
-    try {
-      const { id } = request.params
-      logger.info(`📖 Getting document: ${id}`)
-      
-      const document = await documentsService.getById(id)
-      
-      if (!document) {
-        logger.warn(`❌ Document not found: ${id}`)
-        return reply.status(404).send({ error: 'Document not found' })
-      }
-      
-      logger.info(`✅ Document retrieved: ${id}`)
-      return reply.send(document)
-      
-    } catch (error) {
-      logger.error('❌ Error getting document:', error)
-      return reply.status(500).send({ 
-        error: error instanceof Error ? error.message : 'Internal server error' 
-      })
-    }
-  },
-
   async askQuestion(request: FastifyRequest<{ Body: { documentId: string, question: string } }>, reply: FastifyReply) {
     try {
       const { documentId, question } = request.body

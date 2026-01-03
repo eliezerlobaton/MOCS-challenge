@@ -292,19 +292,6 @@ Faz upload e processa um documento.
 }
 ```
 
-#### `GET /api/documents/:id`
-Obtém um documento específico.
-
-**Response:**
-```json
-{
-  "id": "uuid",
-  "fileName": "documento.pdf",
-  "textContent": "Texto extraído...",
-  "createdAt": "2025-01-03T00:00:00.000Z"
-}
-```
-
 #### `POST /api/documents/question`
 Faz uma pergunta sobre um documento.
 
