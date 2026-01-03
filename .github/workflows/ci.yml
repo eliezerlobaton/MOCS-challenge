@@ -1,0 +1,150 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '10.26.2'
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+    
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: ${{ env.PNPM_VERSION }}
+    
+    - name: Get pnpm store directory
+      id: pnpm-cache
+      shell: bash
+      run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+    
+    - uses: actions/cache@v4
+      with:
+        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: ${{ runner.os }}-pnpm-store-
+    
+    - name: Install dependencies
+      working-directory: ./backend
+      run: pnpm install --frozen-lockfile
+    
+    - name: TypeScript Type Check
+      working-directory: ./backend
+      run: pnpm run type-check
+    
+    - name: ESLint
+      working-directory: ./backend
+      run: pnpm run lint
+    
+    - name: Build Backend
+      working-directory: ./backend
+      run: pnpm run build
+
+  test-frontend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+    
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: ${{ env.PNPM_VERSION }}
+    
+    - name: Get pnpm store directory
+      id: pnpm-cache
+      shell: bash
+      run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+    
+    - uses: actions/cache@v4
+      with:
+        path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+        key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: ${{ runner.os }}-pnpm-store-
+    
+    - name: Install dependencies
+      working-directory: ./frontend
+      run: pnpm install --frozen-lockfile
+    
+    - name: TypeScript Build Check
+      working-directory: ./frontend
+      run: pnpm run build
+    
+    - name: ESLint
+      working-directory: ./frontend
+      run: pnpm run lint
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build Backend Image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./backend
+        push: false
+        tags: mocs-backend:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Build Frontend Image
+      uses: docker/build-push-action@v5
+      with:
+        context: ./frontend
+        push: false
+        tags: mocs-frontend:test
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  quality-gate:
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-frontend, docker-build]
+    
+    steps:
+    - name: Quality Gate Summary
+      run: |
+        echo "🎯 QUALITY GATE RESULTS:"
+        echo "✅ Backend: TypeScript + ESLint + Build passed"
+        echo "✅ Frontend: TypeScript + ESLint + Build passed"  
+        echo "✅ Docker: All images built successfully"
+        echo "🚀 All quality gates passed!"
