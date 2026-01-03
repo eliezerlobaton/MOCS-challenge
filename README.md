@@ -1,3 +1,8 @@
+
+
+
+[Video explicativo](https://github.com/user-attachments/assets/f23db64e-dd32-4747-b6cc-b9818e876f13)
+
 # 📄 MOCS Challenge - OCR & Análise de Documentos com IA
 
 Sistema de análise de documentos com OCR (Reconhecimento Óptico de Caracteres) e chat com IA para responder perguntas sobre o conteúdo extraído.
@@ -151,7 +156,7 @@ MOCS-challenge/
 
 ```bash
 # 1. Clonar repositório
-git clone <repository-url>
+git clone [repository-url](https://github.com/eliezerlobaton/MOCS-challenge.git)
 cd MOCS-challenge
 
 # 2. Configurar variáveis de ambiente
